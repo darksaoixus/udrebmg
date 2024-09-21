@@ -38,6 +38,7 @@ bool cmd_append_and_run(Nob_Cmd *cmd, const char *args[], size_t count) {
   nob_cmd_append(&cmd_cp, "-I./include");
   nob_cmd_append(&cmd_cp, "-L./lib", "-l:libraylib.a", "-lm");
 
+  cmd->items = cmd_cp.items;
   cmd->capacity = cmd_cp.capacity;
 
   return nob_cmd_run_sync(cmd_cp);
