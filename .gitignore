@@ -1,0 +1,5 @@
+bin/
+*.old
+*.o
+*.gch
+nob
