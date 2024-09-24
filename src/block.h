@@ -1,15 +1,22 @@
 #ifndef _BLOCK_H_
+#define _BLOCK_H_
 
-#include <stddef.h>
+#define BLOCK_SIDE 16
+#define CHUNK_SIDE 10
+
+#define RENDER_DISTANCE 3
+#define RENDER_SIDE (RENDER_DISTANCE * 2 + 1)
 
 #include "raylib.h"
 
-#define CHUNK_SIDE 16
-#define CHUNK_AREA (CHUNK_SIDE * CHUNK_SIDE)
 
 typedef enum {
   GRASS = 0,
+  ROAD,
+  BLOCK_NUM
 } BlockType;
+
+extern Texture2D block_textures[BLOCK_NUM];
 
 typedef struct {
   BlockType type;
@@ -17,23 +24,27 @@ typedef struct {
 } Block;
 
 typedef struct {
-  Block *blocks;
-  Vector2 pivot_pos;
+  Block blocks[CHUNK_SIDE * CHUNK_SIDE];
+  Vector2 position;
 } Chunk;
 
 typedef struct {
-  char *buf;
-  size_t capacity;
-  size_t offset;
-} Arena;
+  Chunk chunks[RENDER_SIDE * RENDER_SIDE];
+  int free_chunks[RENDER_SIDE * RENDER_SIDE];
+  Vector2 center;
+  int chunk_count;
+} Region;
+
+// Block textures
+void Block_load_textures();
+void Block_unload_textures();
 
 // Chunk
-Chunk Chunk_new(Arena *arena, Vector2 pivot_pos);
-void Chunk_draw(Chunk chunk);
+void Chunk_init(Chunk *chunk);
+void Chunk_draw(Chunk *chunk);
 
-// Arena
-Arena Arena_init(size_t cap);
-void *Arena_alloc(Arena *arena, size_t size);
-void Arena_free(Arena *arena);
+// Region
+void Region_init(Region *region);
+void Region_update(Region *region);
 
 #endif // _BLOCK_H_

@@ -1,58 +1,66 @@
 #include "block.h"
 
-#include <stdlib.h>
+Texture2D block_textures[BLOCK_NUM];
 
-Chunk Chunk_new(Arena *arena, Vector2 pivot_pos) {
-  Chunk chunk = {0};
-  chunk.pivot_pos = pivot_pos;
-  chunk.blocks = (Block *)Arena_alloc(arena, sizeof(Block) * CHUNK_AREA);
-  if (chunk.blocks == NULL) return chunk;
+// Block textures
+void Block_load_textures() {
+  block_textures[GRASS] = LoadTexture("assets/blocks/grass.png");
+  block_textures[ROAD] = LoadTexture("assets/blocks/road.png");
+}
 
-  for (size_t i = 0; i < CHUNK_SIDE; ++i) {
-    for (size_t j = 0; j < CHUNK_SIDE; ++j) {
-      size_t idx = (i * CHUNK_SIDE) + j;
-      chunk.blocks[idx] = CLITERAL(Block){
-        .type = GRASS,
-        .chunk_pos = CLITERAL(Vector2){ .x = j, .y = i },
+void Block_unload_textures() {
+  for (int i = 0; i < BLOCK_NUM; ++i) {
+    if (block_textures[i].width == 0) continue;
+
+    UnloadTexture(block_textures[i]);
+  }
+}
+
+// Chunk
+void Chunk_init(Chunk *chunk) {
+  for (int i = 0; i < CHUNK_SIDE; ++i) {
+    for (int j = 0; j < CHUNK_SIDE; ++j) {
+      BlockType type = GRASS;
+      if (i == 2 || j == 2) type = ROAD;
+
+      int idx = i * CHUNK_SIDE + j;
+      chunk->blocks[idx] = CLITERAL(Block){ 
+        .type = type,
+        .chunk_pos = CLITERAL(Vector2){ j, i },
       };
     }
   }
-
-  return chunk;
 }
 
-void Chunk_draw(Chunk chunk) {
-  for (size_t i = 0; i < CHUNK_AREA; ++i) {
-    Color col = LIME;
-    Block block = chunk.blocks[i];
+void Chunk_draw(Chunk *chunk) {
+  for (int i = 0; i < CHUNK_SIDE * CHUNK_SIDE; ++i) {
+    Block block = chunk->blocks[i];
     Vector2 block_pos = CLITERAL(Vector2){
-      .x = chunk.pivot_pos.x + CHUNK_SIDE * block.chunk_pos.x,
-      .y = chunk.pivot_pos.y + CHUNK_SIDE * block.chunk_pos.y,
+      .x = chunk->position.x + block.chunk_pos.x * BLOCK_SIDE,
+      .y = chunk->position.y + block.chunk_pos.y * BLOCK_SIDE,
     };
-    if (block.chunk_pos.x == 2) col = PURPLE;
-    DrawRectangleV(block_pos, CLITERAL(Vector2){ CHUNK_SIDE, CHUNK_SIDE }, col);
+    DrawTextureV(block_textures[block.type], block_pos, WHITE);
   }
 }
 
-// Arena
-Arena Arena_init(size_t cap) {
-  Arena arena = {0};
-  arena.buf = (char *)malloc(cap);
-  arena.capacity = cap;
-  arena.offset = 0;
+// Region
+void Region_init(Region *region) {
+  int center_x = region->center.x / (CHUNK_SIDE * BLOCK_SIDE);
+  int center_y = region->center.y / (CHUNK_SIDE * BLOCK_SIDE);
 
-  return arena;
+  for (int dy = -RENDER_DISTANCE; dy <= RENDER_DISTANCE; ++dy) {
+    for (int dx = -RENDER_DISTANCE; dx <= RENDER_DISTANCE; ++dx) {
+      Chunk *chunk = &(region->chunks[region->chunk_count++]);
+      chunk->position.x = (center_x + dx) * CHUNK_SIDE * BLOCK_SIDE;
+      chunk->position.y = (center_y + dy) * CHUNK_SIDE * BLOCK_SIDE;
+      Chunk_init(chunk);
+    }
+  }
 }
 
-void *Arena_alloc(Arena *arena, size_t size) {
-  if (arena->offset + size >= arena->capacity) return NULL;
-
-  void *offset = (void *)(arena->buf + arena->offset);
-  arena->offset += size;
-  return offset;
-}
-
-void Arena_free(Arena *arena) {
-  free(arena->buf);
+void Region_update(Region *region) {
+  for (int i = 0; i < RENDER_SIDE * RENDER_SIDE; ++i) {
+    Chunk_draw(&(region->chunks[i]));
+  }
 }
 

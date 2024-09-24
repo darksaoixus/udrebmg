@@ -1,4 +1,5 @@
 #include "raylib.h"
+#include "raymath.h"
 
 #include "block.h"
 
@@ -6,37 +7,42 @@ int main(void) {
   InitWindow(800, 600, "UdreBMG - Demo");
   SetTargetFPS(60);
 
-  Arena arena = Arena_init(sizeof(Block) * CHUNK_AREA * 5);
-  Chunk chunk = Chunk_new(&arena, CLITERAL(Vector2){ 20, 20 });
+  Block_load_textures();
+
+  Region region = {0};
+  region.center = CLITERAL(Vector2){ 400, 300 };
+  Region_init(&region);
 
   Camera2D camera = {0};
-  camera.target = CLITERAL(Vector2){
-    chunk.pivot_pos.x + 40,
-    chunk.pivot_pos.y + 40
-  };
-  camera.offset = CLITERAL(Vector2){ 400, 300 };
-  camera.rotation = 0;
-  camera.zoom = 1;
+  camera.offset = CLITERAL(Vector2){ CHUNK_SIDE / 2, CHUNK_SIDE / 2 };
+  camera.target = region.center;
+  camera.rotation = 0.0f;
+  camera.zoom = 1.0f;
+
+  char buffer[256];
 
   while (!WindowShouldClose()) {
-    if (IsKeyDown(KEY_RIGHT)) camera.target.x += 2;
-    if (IsKeyDown(KEY_LEFT)) camera.target.x -= 2;
-    if (IsKeyDown(KEY_DOWN)) camera.target.y += 2;
-      if (IsKeyDown(KEY_UP)) camera.target.y -= 2;
+    Vector2 dir = {0};
+    dir.x = (IsKeyDown(KEY_RIGHT) - IsKeyDown(KEY_LEFT));
+    dir.y = (IsKeyDown(KEY_DOWN) - IsKeyDown(KEY_UP));
 
+    Vector2 normal_dir = Vector2Normalize(dir);
+    camera.target.x += normal_dir.x * 3.0f;
+    camera.target.y += normal_dir.y * 3.0f;
     BeginDrawing();
       ClearBackground(RAYWHITE);
 
       BeginMode2D(camera);
-        Chunk_draw(chunk);
+        Region_update(&region);
       EndMode2D();
 
-      DrawText("I'm alive", 190, 200, 20, RED);
+      snprintf(buffer, 256, "Camera pos: (%f, %f)", camera.target.x, camera.target.y);
+      DrawText(buffer, 190, 200, 20, RED);
     EndDrawing();
   }
 
+  Block_unload_textures();
   CloseWindow();
-  Arena_free(&arena);
   
   return 0;
 }
